@@ -438,16 +438,26 @@ function renderLocalStars(team, count) {
 }
 
 function awardLocalPoint(team) {
+    let winner = false;
     if (team === 't1') {
         localState.team1Stars++;
         renderLocalStars('t1', localState.team1Stars);
-        if (localState.team1Stars >= localState.targetStars) showWinner(localState.team1Name);
-        else revealLocalAnswer();
+        if (localState.team1Stars >= localState.targetStars) { showWinner(localState.team1Name); winner = true; }
     } else {
         localState.team2Stars++;
         renderLocalStars('t2', localState.team2Stars);
-        if (localState.team2Stars >= localState.targetStars) showWinner(localState.team2Name);
-        else revealLocalAnswer();
+        if (localState.team2Stars >= localState.targetStars) { showWinner(localState.team2Name); winner = true; }
+    }
+    
+    // Auto-progress
+    revealLocalAnswer();
+    if (!winner) {
+        // Automatically switch to the next word after giving the point
+        setTimeout(() => {
+            if(currentMode === 'local' && localState.team1Stars < localState.targetStars && localState.team2Stars < localState.targetStars) {
+                nextLocalWord();
+            }
+        }, 1500);
     }
 }
 
@@ -543,9 +553,8 @@ function buzzInOnline() {
                 currentData.currentBuzzer = playerId;
                 currentData.status = 'judging';
                 currentData.reactionTime = reactTime;
-            } else {
-                return; // Abort transaction if someone else already buzzed
             }
+            // Always return currentData. If we don't return it, transaction aborts locally and fails to sync with Server.
             return currentData;
         });
     }
