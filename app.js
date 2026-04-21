@@ -303,8 +303,13 @@ function scramble(word) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    // Using explicit non-breaking spaces ensures the browser renders the wide gaps
-    return arr.join('\u00A0\u00A0\u00A0');
+    // Arabic needs explicit non-breaking spaces to isolate letters properly,
+    // but English looks too scattered and distorted with massive gaps.
+    if (lang === 'ar') {
+        return arr.join('\u00A0\u00A0'); // Arabic gaps
+    } else {
+        return arr.join(' '); // Normal single space for English
+    }
 }
 
 function applyTheme() {
@@ -503,7 +508,7 @@ function startOnlineHost() {
         playersList = {}; handlePlayersSync(playersList);
     }
     
-    updateOnlineDB({ status: 'playing', targetStars: target, currentBuzzer: null, winnerName: null });
+    updateOnlineDB({ status: 'playing', targetStars: target, currentBuzzer: "", winnerName: "" });
     
     nextOnlineWord();
     showView('view-online-host');
@@ -519,7 +524,7 @@ function nextOnlineWord() {
         scrambledWord: scramble(picked.word),
         hint: picked.hint,
         wrongAttempts: 0,
-        currentBuzzer: null
+        currentBuzzer: ""
     });
 }
 
@@ -533,12 +538,13 @@ function buzzInOnline() {
         updateOnlineDB({ status: 'judging', currentBuzzer: playerId, reactionTime: reactTime });
     } else {
         db.ref(`harf/rooms/${roomCode}/gameState`).transaction((currentData) => {
-            if (currentData === null) return currentData;
-            // In Firebase, setting to null removes the key, so currentData.currentBuzzer might be undefined
-            if (!currentData.currentBuzzer) {
+            if (currentData === null) return { ...onlineState, status: 'judging', currentBuzzer: playerId, reactionTime: reactTime };
+            if (!currentData.currentBuzzer || currentData.currentBuzzer === "") {
                 currentData.currentBuzzer = playerId;
                 currentData.status = 'judging';
                 currentData.reactionTime = reactTime;
+            } else {
+                return; // Abort transaction if someone else already buzzed
             }
             return currentData;
         });
@@ -565,7 +571,7 @@ function judgeOnlineCorrect() {
         }
         
         if (newStars >= onlineState.targetStars) {
-            updateOnlineDB({ status: 'win', winnerName: buzzedPlayer.name, currentBuzzer: null });
+            updateOnlineDB({ status: 'win', winnerName: buzzedPlayer.name, currentBuzzer: "" });
         } else {
             nextOnlineWord();
         }
@@ -575,7 +581,7 @@ function judgeOnlineCorrect() {
 function judgeOnlineWrong() {
     if (!onlineState.currentBuzzer) return;
     const newWrong = (onlineState.wrongAttempts || 0) + 1;
-    updateOnlineDB({ status: 'playing', currentBuzzer: null, wrongAttempts: newWrong });
+    updateOnlineDB({ status: 'playing', currentBuzzer: "", wrongAttempts: newWrong });
 }
 
 // Listeners / Sync Handling
