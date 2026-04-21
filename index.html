@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حرف - HARF</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Changa:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="pixel-theme">
+    <header class="top-nav pixel-border">
+        <div class="logo">
+            <span class="ar-text">حرف</span>
+            <span class="en-text">HARF</span>
+        </div>
+        <div class="settings-bar">
+            <button id="lang-toggle" class="icon-btn pixel-btn" aria-label="Toggle Language" title="Toggle Language (AR/EN)"><i class="fa-solid fa-language"></i></button>
+            <button id="theme-toggle" class="icon-btn pixel-btn" aria-label="Toggle Theme" title="Toggle Dark/Light Mode"><i class="fa-solid fa-moon"></i></button>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- View 1: Setup Options -->
+        <section id="view-setup" class="view active">
+            <div class="card pixel-panel">
+                <center>
+                    <h2 data-i18n="welcome" class="pixel-heading">Welcome to Harf</h2>
+                    <p style="margin-bottom: 2rem; opacity: 0.8;" data-i18n="gameDesc">Select Game Mode</p>
+                </center>
+                
+                <div id="mode-selection" style="display:flex; flex-direction:column; gap:1rem;">
+                   <button id="btn-select-local" class="primary-btn pixel-btn pulse-pixel" data-i18n="localModeBtn">Local 2 Teams</button>
+                   <button id="btn-select-online-host" class="secondary-btn pixel-btn" data-i18n="onlineHostBtn">Create Online Room</button>
+                   <button id="btn-select-online-join" class="secondary-btn pixel-btn" data-i18n="onlineJoinBtn">Join with Code</button>
+                </div>
+
+                <!-- Local Setup -->
+                <div id="local-setup-panel" class="hidden setup-panel" style="margin-top: 1.5rem;">
+                    <hr style="border: 2px solid var(--panel-border); margin-bottom: 1.5rem;">
+                    <div class="team-inputs" style="margin-bottom: 1rem;">
+                        <input type="text" id="team1-name" class="pixel-input" placeholder="Team 1 Name" value="Team A" style="width:100%; margin-bottom:1rem;">
+                        <input type="text" id="team2-name" class="pixel-input" placeholder="Team 2 Name" value="Team B" style="width:100%;">
+                    </div>
+                    <div class="input-group">
+                         <label data-i18n="targetStars">Score to Win (3-10)</label>
+                         <input type="number" id="local-target-stars" class="pixel-input" min="1" max="20" value="5">
+                    </div>
+                    <button id="btn-start-local" class="primary-btn pixel-btn" data-i18n="startGame" style="width:100%; margin-top:1rem;">Start Local Game</button>
+                </div>
+
+                <!-- Online Host Setup -->
+                <div id="online-host-setup-panel" class="hidden setup-panel" style="margin-top: 1.5rem;">
+                    <hr style="border: 2px solid var(--panel-border); margin-bottom: 1.5rem;">
+                    <div class="input-group">
+                         <label data-i18n="targetStars" style="display:block; margin-bottom:0.5rem; font-weight:bold;">Score to Win (3-10)</label>
+                         <input type="number" id="online-target-stars" class="pixel-input" min="1" max="20" value="5" style="width:100%; margin-bottom:1rem;">
+                    </div>
+                    <button id="btn-start-host" class="primary-btn pixel-btn" data-i18n="createHostReady" style="width:100%;">Generate Room Code</button>
+                </div>
+
+                <!-- Online Join Setup -->
+                <div id="online-join-setup-panel" class="hidden setup-panel" style="margin-top: 1.5rem;">
+                    <hr style="border: 2px solid var(--panel-border); margin-bottom: 1.5rem;">
+                    <div class="input-group">
+                        <input type="text" id="player-name" class="pixel-input" placeholder="Enter Your Name" style="width:100%; margin-bottom:1rem;">
+                        <input type="text" id="join-room-code" class="pixel-input" placeholder="Room Code (e.g. 1234)" style="width:100%; margin-bottom:1rem; text-transform:uppercase;">
+                    </div>
+                    <button id="btn-join-player" class="secondary-btn pixel-btn" data-i18n="joinGameReady" style="width:100%; margin-bottom:1rem;">Connect to Room</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- View 2: Local Party Game Screen -->
+        <section id="view-local-game" class="view hidden">
+            <!-- Score Board -->
+            <div class="scoreboard pixel-panel">
+                <div class="team-score">
+                    <div id="score-t1-name" class="team-name">Team A</div>
+                    <div id="stars-t1" class="stars-display"></div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="team-score">
+                    <div id="score-t2-name" class="team-name">Team B</div>
+                    <div id="stars-t2" class="stars-display"></div>
+                </div>
+            </div>
+
+            <div class="word-card pixel-panel">
+                <h3 data-i18n="scrambledWord" style="opacity: 0.8; margin-bottom: 0.5rem; text-align: center;">Scrambled Word</h3>
+                <div class="scrambled-text" id="local-scrambled">????</div>
+                
+                <div id="local-answer-box" class="answer-box hidden">
+                    <span data-i18n="originalWord">Answer:</span>
+                    <strong id="local-answer" class="highlight-pixel">---</strong>
+                </div>
+
+                <div class="game-controls">
+                    <button id="btn-reveal" class="secondary-btn pixel-btn" data-i18n="revealAnswer">Reveal Answer</button>
+                </div>
+            </div>
+
+            <div class="host-dashboard pixel-panel" style="margin-top: 2rem;">
+                <h3 data-i18n="awardPoint" style="text-align: center; margin-bottom: 1.5rem;">Award Point To:</h3>
+                
+                <div class="award-actions" style="display:flex; gap:1rem;">
+                    <button id="btn-award-t1" class="action-btn correct pixel-btn" style="flex:1;"><i class="fa-solid fa-plus"></i> <span id="award-lbl-t1">Team A</span></button>
+                    <button id="btn-award-t2" class="action-btn correct pixel-btn" style="flex:1; background:var(--primary);"><i class="fa-solid fa-plus"></i> <span id="award-lbl-t2">Team B</span></button>
+                </div>
+
+                <button id="btn-local-next-word" class="primary-btn pixel-btn" data-i18n="nextWord" style="margin-top: 1.5rem; width: 100%; background: #fbbf24; color: #000;">Next Word</button>
+            </div>
+        </section>
+
+
+        <!-- View 3: Online Player Screen -->
+        <section id="view-online-player" class="view hidden">
+            <div class="top-status">
+                <div class="player-info" style="font-size:1.5rem; font-weight:800; color:var(--text-color);">
+                    <span id="display-player-name">Name</span>
+                </div>
+                <!-- Pixel stars will go here -->
+                <div class="stars-display" id="my-stars"></div>
+            </div>
+            
+            <div class="word-card pixel-panel">
+                <h3 data-i18n="scrambledWord" style="opacity: 0.8; margin-bottom: 0.5rem;">Scrambled Word</h3>
+                <div class="scrambled-text" id="player-scrambled">????</div>
+                <p id="player-hint-text" class="hint-text hidden"></p>
+            </div>
+            
+            <div class="buzzer-container">
+                <button id="btn-buzzer" class="buzzer-btn disabled">
+                    <span data-i18n="buzz">BUZZ!</span>
+                </button>
+            </div>
+        </section>
+
+    <!-- View 4: Online Host Screen -->
+        <section id="view-online-host" class="view hidden">
+            <div class="host-dashboard pixel-panel" style="max-width: 800px; margin: 0 auto; width: 100%;">
+                <h2 data-i18n="hostDashboard" style="text-align: center; margin-bottom: 0.5rem;">Host Dashboard</h2>
+                <div style="text-align:center; font-size:1.5rem; color:var(--gold); margin-bottom: 2rem; font-weight:900;">
+                    <span data-i18n="roomCodeDisplay">Room Code:</span> <span id="display-room-code" style="color:#fff; background:#000; padding:0.2rem 1rem; border:2px solid var(--gold);">----</span>
+                </div>
+                
+                <div class="word-info" style="padding: 1.5rem; border: 2px dashed var(--panel-border); margin-bottom: 2rem;">
+                    <div style="font-size: 1.2rem; margin-bottom:1rem;">
+                        <span data-i18n="originalWord">Original:</span>
+                        <strong id="host-original" class="highlight-pixel" style="font-size: 1.5rem;">---</strong>
+                    </div>
+                    <div style="font-size: 1.2rem;">
+                        <span data-i18n="scrambled">Scrambled:</span>
+                        <strong id="host-scrambled" style="color:var(--text-color);">---</strong>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:1rem; margin-bottom: 2rem;">
+                    <button id="btn-online-next-word" class="primary-btn pixel-btn" data-i18n="nextWord">Generate Next Word</button>
+                    <button id="btn-reveal-hint" class="secondary-btn pixel-btn hidden" data-i18n="revealHint">Reveal Hint</button>
+                </div>
+
+                <div class="pixel-panel" style="text-align:center; padding: 1.5rem; background: rgba(0,0,0,0.1);">
+                    <h3 data-i18n="whoBuzzed">Who Buzzed?</h3>
+                    <div id="buzzed-player-name" style="font-size: 2rem; color: var(--primary); margin: 1rem 0; font-weight:800; min-height:3rem;">Waiting...</div>
+                    <div class="judge-actions hidden" id="judge-actions" style="display:flex; gap:1rem; justify-content:center;">
+                        <button id="btn-correct" class="action-btn correct pixel-btn"><i class="fa-solid fa-check"></i> <span data-i18n="correct">Correct</span></button>
+                        <button id="btn-wrong" class="action-btn pixel-btn" style="background:var(--danger); color:#fff;"><i class="fa-solid fa-xmark"></i> <span data-i18n="wrong">Wrong</span></button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; border-top: 4px solid var(--panel-border); padding-top: 1.5rem;">
+                    <h3 data-i18n="players" style="margin-bottom: 1rem;">Players</h3>
+                    <ul id="host-players-list" style="list-style:none;">
+                        <!-- Player List -->
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Celebration Screen / Overlay -->
+    <div id="celebration-overlay" class="overlay hidden">
+        <div class="celebration-content pixel-celebration">
+            <img src="pixel_trophy.png" alt="Trophy" class="golden-trophy pixelated" />
+            <h1 id="winner-name-display" class="winner-name pixel-text-shadow">---</h1>
+            <p data-i18n="winner" style="font-size: 2rem; font-weight: bold; letter-spacing: 2px;">WINNER!</p>
+            <button id="btn-play-again" class="primary-btn pixel-btn" data-i18n="playAgain" style="margin-top: 2rem;">Play Again / Close</button>
+        </div>
+    </div>
+
+    <!-- Alert Toast -->
+    <div id="toast" class="toast hidden pixel-panel" style="padding: 1rem; border-width: 2px;"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
