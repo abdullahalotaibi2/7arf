@@ -524,7 +524,7 @@ function nextOnlineWord() {
 }
 
 function buzzInOnline() {
-    if (!roomCode || onlineState.currentBuzzer !== null || onlineState.status !== 'playing') return;
+    if (!roomCode || onlineState.status !== 'playing' || onlineState.currentBuzzer) return;
     
     document.getElementById('btn-buzzer').style.backgroundColor = 'var(--secondary)'; // Turn green
     let reactTime = ((Date.now() - localWordReceivedTime) / 1000).toFixed(2);
@@ -534,7 +534,8 @@ function buzzInOnline() {
     } else {
         db.ref(`harf/rooms/${roomCode}/gameState`).transaction((currentData) => {
             if (currentData === null) return currentData;
-            if (currentData.currentBuzzer === null) {
+            // In Firebase, setting to null removes the key, so currentData.currentBuzzer might be undefined
+            if (!currentData.currentBuzzer) {
                 currentData.currentBuzzer = playerId;
                 currentData.status = 'judging';
                 currentData.reactionTime = reactTime;
