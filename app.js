@@ -33,6 +33,9 @@ let myOnlineStars = 0;
 let playerId = localStorage.getItem('harf_playerId') || Math.random().toString(36).substr(2, 9);
 localStorage.setItem('harf_playerId', playerId);
 let playerName = "";
+let localWordReceivedTime = 0;
+let lastSeenWordForTiming = "";
+let buzzerPressed = false;
 
 let localState = {
     targetStars: 5,
@@ -258,7 +261,16 @@ function init() {
     document.getElementById('btn-reveal-hint').addEventListener('click', revealOnlineHint);
     document.getElementById('btn-correct').addEventListener('click', judgeOnlineCorrect);
     document.getElementById('btn-wrong').addEventListener('click', judgeOnlineWrong);
-    document.getElementById('btn-buzzer').addEventListener('click', buzzInOnline);
+    
+    const buzBtn = document.getElementById('btn-buzzer');
+    buzBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if(!buzzerPressed) { buzzerPressed = true; buzzInOnline(); setTimeout(()=>buzzerPressed=false, 300); }
+    }, {passive: false});
+    buzBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if(!buzzerPressed) { buzzerPressed = true; buzzInOnline(); setTimeout(()=>buzzerPressed=false, 300); }
+    });
 
     document.getElementById('btn-play-again').addEventListener('click', () => {
         overlay.classList.add('hidden');
@@ -514,14 +526,18 @@ function nextOnlineWord() {
 function buzzInOnline() {
     if (!roomCode || onlineState.currentBuzzer !== null || onlineState.status !== 'playing') return;
     
+    document.getElementById('btn-buzzer').style.backgroundColor = 'var(--secondary)'; // Turn green
+    let reactTime = ((Date.now() - localWordReceivedTime) / 1000).toFixed(2);
+    
     if (useMock) {
-        updateOnlineDB({ status: 'judging', currentBuzzer: playerId });
+        updateOnlineDB({ status: 'judging', currentBuzzer: playerId, reactionTime: reactTime });
     } else {
         db.ref(`harf/rooms/${roomCode}/gameState`).transaction((currentData) => {
             if (currentData === null) return currentData;
             if (currentData.currentBuzzer === null) {
                 currentData.currentBuzzer = playerId;
                 currentData.status = 'judging';
+                currentData.reactionTime = reactTime;
             }
             return currentData;
         });
@@ -566,6 +582,11 @@ function handleOnlineStateSync(state) {
     if (!state || currentMode !== 'online') return;
     onlineState = state;
 
+    if (state.currentWord && state.currentWord !== lastSeenWordForTiming) {
+        lastSeenWordForTiming = state.currentWord;
+        localWordReceivedTime = Date.now();
+    }
+
     if (state.status === 'win' && state.winnerName) {
         showWinner(state.winnerName);
     }
@@ -579,7 +600,8 @@ function handleOnlineStateSync(state) {
         const hintBtn = document.getElementById('btn-reveal-hint');
         
         if (state.currentBuzzer && playersList[state.currentBuzzer]) {
-            buzzerNameEl.innerText = playersList[state.currentBuzzer].name;
+            let rtText = state.reactionTime ? ` (${state.reactionTime}s)` : '';
+            buzzerNameEl.innerText = playersList[state.currentBuzzer].name + rtText;
             buzzerNameEl.style.animation = 'pulse 1s infinite alternate';
             judgeActions.classList.remove('hidden');
         } else {
@@ -603,6 +625,7 @@ function handleOnlineStateSync(state) {
         
         if (state.status === 'playing') {
             buzBtn.classList.remove('disabled');
+            buzBtn.style.backgroundColor = ''; // Reset color
             buzBtn.innerHTML = `<span>${translations[lang]['buzz']}</span>`;
         } else {
             buzBtn.classList.add('disabled');
