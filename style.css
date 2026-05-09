@@ -137,12 +137,22 @@ body.pixel-theme {
 /* Main Container */
 .app-container {
     flex: 1;
+    min-height: 100vh;
     padding: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 1;
+}
+
+.app-footer {
+    text-align: center;
+    padding: 2rem;
+    margin-top: auto;
+    opacity: 0.5;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
 }
 
 .view {

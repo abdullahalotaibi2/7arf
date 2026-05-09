@@ -197,7 +197,8 @@ const translations = {
         winner: "WINNER!",
         playAgain: "Play Again / Close",
         hostDashboard: "Host Dashboard",
-        waiting: "Waiting..."
+        waiting: "Waiting...",
+        copyright: "© 2026 Abdullah Alotaibi - All Rights Reserved."
     },
     ar: {
         welcome: "مرحباً في حرف",
@@ -227,7 +228,8 @@ const translations = {
         winner: "مبروك الفوز!",
         playAgain: "العب من جديد / إغلاق",
         hostDashboard: "لوحة تحكم المضيف",
-        waiting: "في الانتظار..."
+        waiting: "في الانتظار...",
+        copyright: "© 2026 عبدالله العتيبي - جميع الحقوق محفوظة."
     }
 };
 
